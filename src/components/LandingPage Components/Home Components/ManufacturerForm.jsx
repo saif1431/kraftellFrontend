@@ -1,11 +1,12 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import BASE_URL from "../../../config"; // make sure it's correct
+import BASE_URL from "../../../config";
 
 const ManufacturerForm = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -16,16 +17,27 @@ const ManufacturerForm = () => {
     phoneNumber: "",
     profileImage: null,
   });
-  const [previewImage, setPreviewImage] = useState(null);
-  const fileInputRef = useRef(null);
 
-  // Limited country list with only 4 countries
+  const [previewImage, setPreviewImage] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [selectedCountryCode, setSelectedCountryCode] = useState("");
+
   const countryList = [
-    { code: "AO", name: "Angola" },
-    { code: "BD ", name: "Bangladesh" },
-    { code: "CY", name: "Cyprus" },
-    { code: "DK", name: "Denmark" },
+    { code: "AO", name: "Angola", phoneCode: "+244" },
+    { code: "BD", name: "Bangladesh", phoneCode: "+880" },
+    { code: "CY", name: "Cyprus", phoneCode: "+357" },
+    { code: "DK", name: "Denmark", phoneCode: "+45" },
   ];
+
+  useEffect(() => {
+    if (selectedCountryCode && !phoneNumber.startsWith(selectedCountryCode)) {
+      setPhoneNumber(selectedCountryCode);
+      setFormData(prev => ({
+        ...prev,
+        phoneNumber: selectedCountryCode
+      }));
+    }
+  }, [selectedCountryCode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,6 +45,41 @@ const ManufacturerForm = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleCountryChange = (e) => {
+    const countryCode = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      country: countryCode
+    }));
+    
+    const selectedCountry = countryList.find(c => c.code === countryCode);
+    if (selectedCountry) {
+      setSelectedCountryCode(selectedCountry.phoneCode);
+    } else {
+      setSelectedCountryCode("");
+    }
+  };
+
+  const handlePhoneNumberChange = (e) => {
+    const value = e.target.value;
+    
+    if (selectedCountryCode) {
+      if (value.startsWith(selectedCountryCode) || value === "") {
+        setPhoneNumber(value);
+        setFormData(prev => ({
+          ...prev,
+          phoneNumber: value
+        }));
+      }
+    } else {
+      setPhoneNumber(value);
+      setFormData(prev => ({
+        ...prev,
+        phoneNumber: value
+      }));
+    }
   };
 
   const handleImageChange = (e) => {
@@ -43,7 +90,6 @@ const ManufacturerForm = () => {
         profileImage: file,
       }));
 
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -91,7 +137,6 @@ const ManufacturerForm = () => {
         </div>
 
         <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-          {/* Profile Image Upload */}
           <div className="flex flex-col items-center mb-6">
             <input
               type="file"
@@ -100,6 +145,7 @@ const ManufacturerForm = () => {
               accept="image/*"
               className="hidden"
               onChange={handleImageChange}
+              ref={fileInputRef}
             />
             <label htmlFor="profileImage" className="cursor-pointer">
               {previewImage ? (
@@ -128,9 +174,7 @@ const ManufacturerForm = () => {
             </label>
           </div>
 
-          {/* Form Fields */}
           <div className="rounded-md space-y-4">
-            {/* Full Name */}
             <div>
               <input
                 id="fullName"
@@ -144,7 +188,6 @@ const ManufacturerForm = () => {
               />
             </div>
 
-            {/* Brand Name */}
             <div>
               <input
                 id="brandName"
@@ -158,7 +201,6 @@ const ManufacturerForm = () => {
               />
             </div>
 
-            {/* Email */}
             <div>
               <input
                 id="email"
@@ -172,7 +214,6 @@ const ManufacturerForm = () => {
               />
             </div>
 
-            {/* Password */}
             <div>
               <input
                 id="password"
@@ -186,7 +227,6 @@ const ManufacturerForm = () => {
               />
             </div>
 
-            {/* Country (Now with only 4 options) */}
             <div>
               <select
                 id="country"
@@ -194,7 +234,7 @@ const ManufacturerForm = () => {
                 required
                 className="mt-1 block w-full px-3 py-3 bg-white text-gray-600 rounded-sm outline-none"
                 value={formData.country}
-                onChange={handleChange}
+                onChange={handleCountryChange}
               >
                 <option value="">Country</option>
                 {countryList.map((country) => (
@@ -205,7 +245,6 @@ const ManufacturerForm = () => {
               </select>
             </div>
 
-            {/* Phone Number */}
             <div>
               <input
                 id="phoneNumber"
@@ -214,17 +253,21 @@ const ManufacturerForm = () => {
                 type="tel"
                 required
                 className="mt-1 block w-full px-3 py-3 bg-white rounded-sm outline-none"
-                value={formData.phoneNumber}
-                onChange={handleChange}
+                value={phoneNumber}
+                onChange={handlePhoneNumberChange}
               />
+              {selectedCountryCode && (
+                <p className="text-xs  text-gray-500 mt-1">
+                  Country code: {selectedCountryCode}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="flex items-end justify-end">
             <button
               type="submit"
-              className="flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-md font-medium text-white bg-blue-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-md font-medium text-white bg-blue-600 hover:bg-indigo-700"
             >
               Submit
             </button>
